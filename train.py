@@ -6,7 +6,6 @@ import argparse
 import time
 import torch
 from torch.utils.data import Dataset
-#from yaml import load
 
 import torch
 import datetime
@@ -16,7 +15,6 @@ from train_dataram import get_data
 
 
 #%%
-#这里预定义了一些超参数
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_name', type=str, default='data10_134', help='the name of dataset') 
 parser.add_argument('--num_workers', type=int, default=4)
@@ -41,7 +39,6 @@ parser.add_argument('--k', type=int, default=10)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--type', type=str, default='all')
 
-#args = parser.parse_args(args=[])
 args = parser.parse_args()
 print(args.de)
 
@@ -62,25 +59,24 @@ class  TripDataset(Dataset):
         else:
             return self.data[i],self.labels[i],self.tripId[i]
 class Siameseset(Dataset):
-    #Train: For each sample creates randomly a positive or a negative pair
-    #Test: Creates fixed pairs for testing
+
     def __init__(self, data,is_train = True):
 
         self.drive_dataset = data.data
         self.is_train = is_train
-        self.labels = data.labels#标签
-        self.labels_set = set(self.labels)#标签有哪些
+        self.labels = data.labels
+        self.labels_set = set(self.labels)
         self.label_to_indices = {label: np.where(self.labels == label)[0]
-                                     for label in self.labels_set}#每个标签对应的位置
-        if not self.is_train:#测试集还会多一个test_pairs
-            # generate fixed pairs for testing
-            random_state = np.random.RandomState(1)#固定的种子
+                                     for label in self.labels_set}
+        if not self.is_train:
+
+            random_state = np.random.RandomState(1)
 
             positive_pairs = [[i, random_state.choice(self.label_to_indices[self.labels[i]]),1] \
-                              for i in range(0, len(self.drive_dataset), 2)]#每隔两个选一个正的
+                              for i in range(0, len(self.drive_dataset), 2)]
 
             negative_pairs = [[i,random_state.choice(self.label_to_indices[np.random.choice(list(self.labels_set - set([self.labels[i]])))]),0] \
-                              for i in range(1, len(self.drive_dataset), 2)]#每个两个选一个负的
+                              for i in range(1, len(self.drive_dataset), 2)]
                   
             self.test_pairs = positive_pairs + negative_pairs
             random_state.shuffle(self.test_pairs)
@@ -88,10 +84,10 @@ class Siameseset(Dataset):
     def __getitem__(self, index):#
         if self.is_train:
             target = np.random.randint(0, 2)
-            img1, label1 = self.drive_dataset[index], self.labels[index]#选出数据和标签
+            img1, label1 = self.drive_dataset[index], self.labels[index]
             if target == 1:
                 siamese_index = index
-                while siamese_index == index:#不能是自己
+                while siamese_index == index:
                     siamese_index = np.random.choice(self.label_to_indices[label1])
                     label2 = label1
             else:
@@ -114,32 +110,32 @@ class Siameseset(Dataset):
 
 
 
-#这里定义了训练函数
+#
 def train(model, train_loader, optimizer, loss_fn, loss_fn2):
     epoch_loss = 0
     total_len = 0
     loss1s = []
     loss2s = []
-    corrects1 = 0#这个是分类的错误率
-    corrects2 = 0#这个是二分类的错误率
-    model.train() #model.train()代表了训练模式    
+    corrects1 = 0#
+    corrects2 = 0#
+    model.train() #model.train()    
     for img1, img2, label1,label2,target in train_loader: 
         target = target.to(device).float()
         img1 = img1.to(device)
         img2 = img2.to(device)
-        #labels = torch.cat([label1,label2],0).to(device).long()
+
         label1 = label1.long().to(device)
         
-        out1_emb = model(img1)#两个数据的embedding
-        out2_emb = model(img2)#两个数据的embedding
+        out1_emb = model(img1)#
+        out2_emb = model(img2)#
 
         
         out1 = model.Classfier(out1_emb)
 
-        ########class_loss        
+      
         loss1 = loss_fn(out1,label1)
 
-        #####Siameseset_loss
+
         score = model.Similarity_Score(out1_emb,out2_emb)
         loss2 = loss_fn2(score,target)
 
@@ -147,15 +143,15 @@ def train(model, train_loader, optimizer, loss_fn, loss_fn2):
         loss1s.append(loss1)
         loss2s.append(loss2)
 
-        optimizer.zero_grad() #加这步防止梯度叠加
-        loss.backward() #反向传播
-        optimizer.step() #梯度下降
+        optimizer.zero_grad() 
+        loss.backward() 
+        optimizer.step() 
         
         epoch_loss += loss.item() * len(target)
         total_len += len(target)
 
 
-        ##计算准确率
+        
         _,pred = torch.max(out1.data,1) 
         corrects1 += (pred == label1).sum().item()
 
@@ -177,7 +173,6 @@ def evaluate(model, dev_loader, loss_fn, loss_fn2):
             target = target.to(device).float()
             img1 = img1.to(device)
             img2 = img2.to(device)
-            #labels = torch.cat([label1,label2],0).to(device).long()
             label1 = label1.long().to(device)
 
             
@@ -187,10 +182,8 @@ def evaluate(model, dev_loader, loss_fn, loss_fn2):
             score = model.Similarity_Score(out1_emb,out2_emb)
             out1 = model.Classfier(out1_emb)
 
-            ########class_loss            
             loss1 = loss_fn(out1,label1)
 
-            #####Siameseset_loss
             loss2 = loss_fn2(score,target)
 
             loss = args.lam1 * loss1 + args.lam2 * loss2
@@ -201,7 +194,6 @@ def evaluate(model, dev_loader, loss_fn, loss_fn2):
             total_len += len(target)
 
 
-            ##计算准确率
             _,pred = torch.max(out1.data,1) 
             corrects1 += (pred == label1).sum().item()
 
@@ -215,13 +207,11 @@ def evaluate(model, dev_loader, loss_fn, loss_fn2):
 if __name__ == '__main__':
     tests =[]        
     st  =time.time()
-    #加载训练集和测试集
     args.seed = np.random.choice(100000,1).item()
     print('seed',args.seed)
     train_data, train_labels, dev_data, dev_labels, test_data, test_labels, test_tripId, sum_classes =cPickle.load(open('/root/autodl-tmp/{}.pkl'.format(args.data_name), 'rb'))
 
     args.num_feat = train_data.shape[2] - 3
-    #总的特征
     args.num_classes = sum_classes
     args.d_model = args.num_filter
     args.L_out = int((train_data.shape[1] - (args.kernel_size -1) -1) / args.stride + 1)
@@ -233,7 +223,7 @@ if __name__ == '__main__':
     devset = TripDataset(dev_data, dev_labels )
     testset = TripDataset(test_data, test_labels)
 
-    train_pairs = Siameseset(trainset,is_train=True)#训练集
+    train_pairs = Siameseset(trainset,is_train=True)#
     dev_pairs = Siameseset(devset,is_train=False)
     test_pairs = Siameseset(testset,is_train=False)
 

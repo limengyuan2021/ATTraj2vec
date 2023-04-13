@@ -15,11 +15,9 @@ def load_data(file):
     return trip_segments
 def returnTrainDevTestData(keys,matrices):
     st  =time.time()
-    # to split data to train, dev, and test; default: 75% train, 10% dev, and 15% test
 
 
 
-    #Build Train, Dev, Test sets
     train_data = []
     train_labels = []
     dev_data = []
@@ -33,13 +31,13 @@ def returnTrainDevTestData(keys,matrices):
     
     for idx in range(len(keys)):
         d,t = keys[idx]
-        if d in driverIds:#如果这个司机在集合中
-            dr = driverIds[d]#dr是这个司机的位置
+        if d in driverIds:#
+            dr = driverIds[d]#
         else: 
-            dr = len(driverIds)#dr是司机的位置
-            driverIds[d] = dr#d对应第几个司机
-        m = matrices[idx]#matrices的第idx个数据
-        if t != curTraj:#轨迹变了就从新生成随机数
+            dr = len(driverIds)#
+            driverIds[d] = dr#
+        m = matrices[idx]#
+        if t != curTraj:#
             curTraj = t
             r = random.random()
         if r < 0.75: 
@@ -84,7 +82,7 @@ def get_data(k=10,seed = 1):
     idx = np.random.choice(np.unique(keys1[:,0]),k, replace=False)
     keys = np.concatenate([keys1[np.isin(keys1[:,0], idx)]],0 )
     matrices = np.concatenate([matrices1[np.isin(keys1[:,0], idx)]],0 )
-    #标签会自己搞定
+    #
 
 
     #np.random.seed(10)
