@@ -1,0 +1,8 @@
+## Dataset
+
+- **File:** `traj.pkl`
+- **Description:** Contains normalized features for trajectory data. The latitude and longitude coordinates have been altered to protect user privacy.
+
+## Code
+
+python -u train_ram.py > train_ram.out
