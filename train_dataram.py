@@ -88,7 +88,7 @@ def get_data(k=10,seed = 1):
     idx = np.random.choice(np.unique(keys1[:,0]),k, replace=False)
     keys = np.concatenate([keys1[np.isin(keys1[:,0], idx)]],0 )
     matrices = np.concatenate([matrices1[np.isin(keys1[:,0], idx)]],0 )
-    #标签会自己搞定
+
 
     data_250 = returnTrainDevTestData(keys,matrices)
     return data_250
